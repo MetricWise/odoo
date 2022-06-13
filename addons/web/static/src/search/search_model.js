@@ -9,6 +9,7 @@ import { SearchArchParser } from "./search_arch_parser";
 import {
     constructDateDomain,
     DEFAULT_INTERVAL,
+    OVERRIDE_FILTERS,
     getComparisonOptions,
     getIntervalOptions,
     getPeriodOptions,
@@ -901,6 +902,18 @@ export class SearchModel extends EventBus {
                 const { defaultYearId } = this.optionGenerators.find((o) => o.id === generatorId);
                 this.query.push({ searchItemId, generatorId: defaultYearId });
             }
+        }
+        // Override Selected Options if an Override Filter is applied
+        if (OVERRIDE_FILTERS.includes(generatorId)) {
+            this.query = this.query.filter(
+                (queryElem) => queryElem.generatorId == generatorId
+            );
+        }
+        else if (this.query.some(queryElem => OVERRIDE_FILTERS.includes(queryElem.generatorId))) {
+            // Remove Override filters if another Date Filter is applied
+            this.query = this.query.filter(
+                (queryElem) => !OVERRIDE_FILTERS.includes(queryElem.generatorId)
+            );
         }
         this._checkComparisonStatus();
         this._notify();

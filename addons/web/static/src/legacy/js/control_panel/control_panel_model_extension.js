@@ -5,7 +5,7 @@ odoo.define("web/static/src/js/control_panel/control_panel_model_extension.js", 
     const Domain = require('web.Domain');
     const pyUtils = require('web.py_utils');
 
-    const { DEFAULT_INTERVAL, DEFAULT_PERIOD,
+    const { DEFAULT_INTERVAL, DEFAULT_PERIOD, OVERRIDE_FILTERS,
         getComparisonOptions, getIntervalOptions, getPeriodOptions,
         constructDateDomain, rankInterval, yearSelected } = require('web.searchUtils');
 
@@ -543,6 +543,24 @@ odoo.define("web/static/src/js/control_panel/control_panel_model_extension.js", 
                         optionId: option.defaultYearId,
                     });
                 }
+            }
+
+            // Override Date filters if an Override filter is applied.
+            if (OVERRIDE_FILTERS.includes(optionId)) {
+                this.state.query = this.state.query.filter(
+                    queryElem => queryElem.optionId === optionId || queryElem.optionId === undefined
+                );
+            } else if (
+            this.state.query.filter(
+                queryElem => queryElem.optionId !== undefined
+            ).some(
+                queryElem => OVERRIDE_FILTERS.includes(queryElem.optionId)
+            )
+            && filter.type === "filter") {
+            // Remove Override filters if another Date Filter is selected.
+                this.state.query = this.state.query.filter(
+                    queryElem => queryElem.optionId === undefined || !OVERRIDE_FILTERS.includes(queryElem.optionId)
+                );
             }
             if (filter.type === 'filter') {
                 this._checkComparisonStatus();

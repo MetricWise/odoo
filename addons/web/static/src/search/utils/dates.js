@@ -7,6 +7,8 @@ import { localization } from "@web/core/l10n/localization";
 
 export const DEFAULT_PERIOD = "this_month";
 
+export const OVERRIDE_FILTERS = ["year_to_date", "month_to_date", "today", "yesterday", "last_month", "last_year"]
+
 export const QUARTERS = {
     1: { description: _lt("Q1"), coveredMonths: [1, 2, 3] },
     2: { description: _lt("Q2"), coveredMonths: [4, 5, 6] },
@@ -22,8 +24,8 @@ export const MONTH_OPTIONS = {
         plusParam: {},
         granularity: "month",
     },
-    last_month: {
-        id: "last_month",
+    previous_month: {
+        id: "previous_month",
         groupNumber: 1,
         format: "MMMM",
         plusParam: { months: -1 },
@@ -77,8 +79,8 @@ export const YEAR_OPTIONS = {
         plusParam: {},
         granularity: "year",
     },
-    last_year: {
-        id: "last_year",
+    previous_year: {
+        id: "previous_year",
         groupNumber: 2,
         format: "yyyy",
         plusParam: { years: -1 },
@@ -93,7 +95,34 @@ export const YEAR_OPTIONS = {
     },
 };
 
-export const PERIOD_OPTIONS = Object.assign({}, MONTH_OPTIONS, QUARTER_OPTIONS, YEAR_OPTIONS);
+export const OVERRIDE_OPTIONS = {
+    month_to_date: {
+        id: 'month_to_date', groupNumber: 3, description: _lt('Month to Date'),
+        plusParam: {}, granularity: "month,day",
+    },
+    year_to_date: {
+        id: 'year_to_date', groupNumber: 3, description: _lt('Year to Date'),
+        plusParam: {}, granularity: 'year,day',
+    },
+        today: {
+        id: 'today', groupNumber: 3, description: _lt('Today'),
+        plusParam: {}, granularity: "day",
+    },
+    yesterday: {
+        id: 'yesterday', groupNumber: 3, description: _lt('Yesterday'),
+        plusParam: { days: -1 }, granularity: 'day',
+    },
+    last_year: {
+        id: 'last_year', groupNumber: 3, description: _lt('Last Year'),
+        plusParam: { years: -1 }, granularity: "year",
+    },
+    last_month: {
+        id: 'last_month', groupNumber: 3, description: _lt('Last Month'),
+        plusParam: { months: -1 }, granularity: "month",
+    },
+};
+
+export const PERIOD_OPTIONS = Object.assign({}, OVERRIDE_OPTIONS, MONTH_OPTIONS, QUARTER_OPTIONS, YEAR_OPTIONS);
 
 export const DEFAULT_INTERVAL = "month";
 
@@ -156,7 +185,12 @@ export function constructDateDomain(
         selectedOptions = getSelectedOptions(referenceMoment, selectedOptionIds);
     }
     const yearOptions = selectedOptions.year;
-    const otherOptions = [...(selectedOptions.quarter || []), ...(selectedOptions.month || [])];
+    const otherOptions = [
+    ...(selectedOptions.quarter || []),
+    ...(selectedOptions.month || []),
+    ...(selectedOptions.day || []),
+    ...(selectedOptions.toDate || []),
+     ];
     sortPeriodOptions(yearOptions);
     sortPeriodOptions(otherOptions);
     const ranges = [];
@@ -210,10 +244,19 @@ export function constructDateRange(params) {
         setParam.month = QUARTERS[setParam.quarter].coveredMonths[0];
         delete setParam.quarter;
     }
-    const date = referenceMoment.set(setParam).plus(plusParam || {});
+    let date = referenceMoment.set(setParam).plus(plusParam || {});
     // compute domain
-    const leftDate = date.startOf(granularity);
-    const rightDate = date.endOf(granularity);
+    let leftDate = date.startOf(granularity);
+    let rightDate = date.endOf(granularity);
+    // Check for To Date Options
+    if (granularity.includes(",")) {
+        let granularities = granularity.split(",");
+        let startGranularity = granularities[0];
+        let endGranularity = granularities[1];
+        date = referenceMoment.plus(plusParam || {});
+        leftDate = date.startOf(startGranularity);
+        rightDate = date.endOf(endGranularity);
+    }
     let leftBound;
     let rightBound;
     if (fieldType === "date") {
@@ -232,6 +275,10 @@ export function constructDateRange(params) {
     } else if (granularity === "quarter") {
         const quarter = date.quarter;
         descriptions[method](QUARTERS[quarter].description.toString());
+    } else if (granularity === "day") {
+        descriptions[method](date.toFormat("MMMM, dd"));
+    } else if (granularity.includes(",")) {
+        descriptions[method](granularity.startsWith("month") ? "MTD " + date.toFormat("MMMM") : "YTD")
     }
     const description = descriptions.join(" ");
     return { domain, description };
@@ -326,16 +373,33 @@ export function getPeriodOptions(referenceMoment) {
         const { id, groupNumber } = option;
         let description;
         let defaultYear;
+        let date;
         switch (option.granularity) {
             case "quarter":
                 description = option.description.toString();
                 defaultYear = referenceMoment.set(option.setParam).year;
                 break;
             case "month":
-            case "year":
-                const date = referenceMoment.plus(option.plusParam);
-                description = date.toFormat(option.format);
+                date = referenceMoment.plus(option.plusParam);
+                description = option.format ? date.toFormat(option.format) : option.description.toString();
                 defaultYear = date.year;
+                break;
+            case "year":
+                date = referenceMoment.plus(option.plusParam);
+                description = option.format ? date.toFormat(option.format) : option.description.toString();
+                defaultYear = date.year;
+                break;
+            case "day":
+                description = option.description.toString();
+                defaultYear = referenceMoment.set(option.setParam).year;
+                break;
+            case "month,day":
+                description = option.description.toString();
+                defaultYear = referenceMoment.set(option.setParam).year;
+                break;
+            case "year,day":
+                description = option.description.toString();
+                defaultYear = referenceMoment.set(option.setParam).year;
                 break;
         }
         const setParam = getSetParam(option, referenceMoment);
@@ -379,9 +443,20 @@ export function getSelectedOptions(referenceMoment, selectedOptionIds) {
         const setParam = getSetParam(option, referenceMoment);
         const granularity = option.granularity;
         if (!selectedOptions[granularity]) {
-            selectedOptions[granularity] = [];
+            if (granularity.includes(",")) {
+                selectedOptions["toDate"] = [];
+                selectedOptions["toDate"].push({ granularity, setParam})
+                continue;
+            } else {
+                selectedOptions[granularity] = [];
+            }
         }
         selectedOptions[granularity].push({ granularity, setParam });
+    }
+    // Ensure that filters are given a year, otherwise Override filters may not
+    // be given one.
+    if (!(selectedOptions["year"]).length) {
+        selectedOptions["year"].push(["year", {"year": new Date().getFullYear()}])
     }
     return selectedOptions;
 }
@@ -394,9 +469,19 @@ export function getSetParam(periodOption, referenceMoment) {
     if (periodOption.granularity === "quarter") {
         return periodOption.setParam;
     }
+    let setParam = {};
     const date = referenceMoment.plus(periodOption.plusParam);
     const granularity = periodOption.granularity;
-    const setParam = { [granularity]: date[granularity] };
+    if (granularity.includes(",")) {
+        let startGranularity = granularity.split(",")[0];
+        setParam = { [granularity]: date[startGranularity] };
+    } else if (granularity === "day") {
+        // In Day Cases, the month must be included as well to prevent incorrect
+        // dates on the first of every month.
+        setParam = { [granularity]: date[granularity], ["month"]: date["month"] };
+    } else {
+        setParam = { [granularity]: date[granularity] };
+    }
     return setParam;
 }
 
@@ -426,5 +511,5 @@ export function sortPeriodOptions(options) {
  * Checks if a year id is among the given array of period option ids.
  */
 export function yearSelected(selectedOptionIds) {
-    return selectedOptionIds.some((optionId) => Object.keys(YEAR_OPTIONS).includes(optionId));
+    return selectedOptionIds.some((optionId) => Object.keys(YEAR_OPTIONS).includes(optionId) || optionId === "last_year");
 }

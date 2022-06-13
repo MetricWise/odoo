@@ -89,6 +89,7 @@ odoo.define('web.searchUtils', function (require) {
         selection: 'selection',
     };
     const DEFAULT_PERIOD = 'this_month';
+    const OVERRIDE_FILTERS = ["year_to_date", "month_to_date", "today", "yesterday", "last_month", "last_year"];
     const QUARTERS = {
         1: { description: _lt("Q1"), coveredMonths: [0, 1, 2] },
         2: { description: _lt("Q2"), coveredMonths: [3, 4, 5] },
@@ -100,8 +101,8 @@ odoo.define('web.searchUtils', function (require) {
             id: 'this_month', groupNumber: 1, format: 'MMMM',
             addParam: {}, granularity: 'month',
         },
-        last_month: {
-            id: 'last_month', groupNumber: 1, format: 'MMMM',
+        previous_month: {
+            id: 'previous_month', groupNumber: 1, format: 'MMMM',
             addParam: { months: -1 }, granularity: 'month',
         },
         antepenultimate_month: {
@@ -132,8 +133,8 @@ odoo.define('web.searchUtils', function (require) {
             id: 'this_year', groupNumber: 2, format: 'YYYY',
             addParam: {}, granularity: 'year',
         },
-        last_year: {
-            id: 'last_year', groupNumber: 2, format: 'YYYY',
+        previous_year: {
+            id: 'previous_year', groupNumber: 2, format: 'YYYY',
             addParam: { years: -1 }, granularity: 'year',
         },
         antepenultimate_year: {
@@ -141,7 +142,45 @@ odoo.define('web.searchUtils', function (require) {
             addParam: { years: -2 }, granularity: 'year',
         },
     };
-    const PERIOD_OPTIONS = Object.assign({}, MONTH_OPTIONS, QUARTER_OPTIONS, YEAR_OPTIONS);
+    const DAY_OPTIONS = {
+        today: {
+            id: 'today', groupNumber: 3, description: _lt('Today'),
+            addParam: {}, granularity: "day",
+        },
+        yesterday: {
+            id: 'yesterday', groupNumber: 3, description: _lt('Yesterday'),
+            addParam: { days: -1 }, granularity: 'day',
+        },
+    };
+    // These options will override any currently selected date filters and will
+    // be removed when a different date filter is selected.
+    const OVERRIDE_OPTIONS = {
+        month_to_date: {
+            id: 'month_to_date', groupNumber: 3, description: _lt('Month to Date'),
+            addParam: {}, granularity: "month,day",
+        },
+        year_to_date: {
+            id: 'year_to_date', groupNumber: 3, description: _lt('Year to Date'),
+            addParam: {}, granularity: 'year,day',
+        },
+        today: {
+            id: 'today', groupNumber: 3, description: _lt('Today'),
+            addParam: {}, granularity: "day",
+        },
+        yesterday: {
+            id: 'yesterday', groupNumber: 3, description: _lt('Yesterday'),
+            addParam: { days: -1 }, granularity: 'day',
+        },
+        last_year: {
+            id: 'last_year', groupNumber: 3, description: _lt('Last Year'),
+            addParam: { years: -1 }, granularity: 'year',
+        },
+        last_month: {
+            id: 'last_month', groupNumber: 3, description: _lt('Last Month'),
+            format:'MMMM', addParam: { months: -1 }, granularity: 'month',
+        },
+    };
+    const PERIOD_OPTIONS = Object.assign({}, OVERRIDE_OPTIONS, MONTH_OPTIONS, QUARTER_OPTIONS, YEAR_OPTIONS);
 
     // GroupBy menu parameters
     const GROUPABLE_TYPES = [
@@ -222,11 +261,12 @@ odoo.define('web.searchUtils', function (require) {
         } else {
             selectedOptions = getSelectedOptions(referenceMoment, selectedOptionIds);
         }
-
         const yearOptions = selectedOptions.year;
         const otherOptions = [
             ...(selectedOptions.quarter || []),
-            ...(selectedOptions.month || [])
+            ...(selectedOptions.month || []),
+            ...(selectedOptions.day || []),
+            ...(selectedOptions.toDate || [])
         ];
 
         sortPeriodOptions(yearOptions);
@@ -292,11 +332,22 @@ odoo.define('web.searchUtils', function (require) {
         setParam,
         addParam,
     }) {
+        let leftBound;
+        let rightBound;
         const date = referenceMoment.clone().set(setParam).add(addParam || {});
+        // Check for To Date Options
+        if (granularity.includes(",")) {
+            let granularities = granularity.split(",");
+            let startGranularity = granularities[0];
+            let endGranularity = granularities[1];
+            leftBound = date.clone().locale('en').startOf(startGranularity);
+            rightBound = date.clone().locale('en').endOf(endGranularity);
 
-        // compute domain
-        let leftBound = date.clone().locale('en').startOf(granularity);
-        let rightBound = date.clone().locale('en').endOf(granularity);
+        } else {
+            // compute domain
+            leftBound = date.clone().locale('en').startOf(granularity);
+            rightBound = date.clone().locale('en').endOf(granularity);
+        }
         if (fieldType === 'date') {
             leftBound = leftBound.format('YYYY-MM-DD');
             rightBound = rightBound.format('YYYY-MM-DD');
@@ -304,12 +355,12 @@ odoo.define('web.searchUtils', function (require) {
             leftBound = leftBound.utc().format('YYYY-MM-DD HH:mm:ss');
             rightBound = rightBound.utc().format('YYYY-MM-DD HH:mm:ss');
         }
+
         const domain = Domain.prototype.arrayToString([
             '&',
             [fieldName, '>=', leftBound],
             [fieldName, '<=', rightBound]
         ]);
-
         // compute description
         const descriptions = [date.format("YYYY")];
         const method = _t.database.parameters.direction === "rtl" ? "push" : "unshift";
@@ -317,9 +368,12 @@ odoo.define('web.searchUtils', function (require) {
             descriptions[method](date.format("MMMM"));
         } else if (granularity === "quarter") {
             descriptions[method](QUARTERS[date.quarter()].description);
+        } else if (granularity === "day") {
+            descriptions[method](date.format("MMMM, DD"));
+        } else if (granularity.includes(",")) {
+            descriptions[method](granularity.startsWith("month") ? "MTD " + date.format("MMMM") : "YTD")
         }
         const description = descriptions.join(" ");
-
         return { domain, description, };
     }
 
@@ -469,10 +523,22 @@ odoo.define('web.searchUtils', function (require) {
             const option = PERIOD_OPTIONS[optionId];
             const setParam = getSetParam(option, referenceMoment);
             const granularity = option.granularity;
+            // Handle To Date Cases
             if (!selectedOptions[granularity]) {
-                selectedOptions[granularity] = [];
+                if (granularity.includes(",")) {
+                    selectedOptions["toDate"] = [];
+                    selectedOptions["toDate"].push({ granularity, setParam });
+                    continue;
+                } else {
+                    selectedOptions[granularity] = [];
+                }
             }
             selectedOptions[granularity].push({ granularity, setParam });
+        }
+        // Ensure that filters are given a year, otherwise Override filters may not
+        // be given one.
+        if (!(selectedOptions["year"]).length) {
+            selectedOptions["year"].push(["year", {"year": new Date().getFullYear()}])
         }
         return selectedOptions;
     }
@@ -490,7 +556,13 @@ odoo.define('web.searchUtils', function (require) {
         }
         const date = referenceMoment.clone().add(periodOption.addParam);
         const setParam = {};
-        setParam[periodOption.granularity] = date[periodOption.granularity]();
+        // Handle To Date Granularities
+        if (periodOption.granularity.includes(",")) {
+            let granularity = periodOption.granularity.split(",")[0];
+            setParam[periodOption.granularity] = date[granularity]();
+        } else {
+            setParam[periodOption.granularity] = date[periodOption.granularity]();
+        }
         return setParam;
     }
 
@@ -524,13 +596,14 @@ odoo.define('web.searchUtils', function (require) {
      * @returns {boolean}
      */
     function yearSelected(selectedOptionIds) {
-        return selectedOptionIds.some(optionId => !!YEAR_OPTIONS[optionId]);
+        return selectedOptionIds.some(optionId => !!YEAR_OPTIONS[optionId] || optionId === "last_year");
     }
 
     return {
         COMPARISON_OPTIONS,
         DEFAULT_INTERVAL,
         DEFAULT_PERIOD,
+        OVERRIDE_FILTERS,
         FACET_ICONS,
         FIELD_OPERATORS,
         FIELD_TYPES,
