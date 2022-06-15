@@ -983,6 +983,46 @@ var ListRenderer = BasicRenderer.extend({
             $tr.addClass('o_list_no_open');
         }
         this._setDecorationClasses($tr, this.rowDecorations, record);
+        /**
+         * If the record is allowed to be opened and the current view is a list
+         * view (not a list embedded in a form view), add event listeners for
+         * Ctrl+Click and Middle Click to open the record in a new tab.
+         */
+        if (!$tr.hasClass('o_list_no_open')) {
+            $tr.mousedown(function(ev) {
+                var startURI;
+                var endURI;
+                var baseURI = $tr[0].baseURI;
+
+                switch(ev.originalEvent.which) {
+                    case 1:
+                        if (ev.ctrlKey && baseURI.substring(baseURI.length - 4) === "list") {
+                            // Prevent record from being opened in current tab
+                            ev.preventDefault();
+                            // Construct form URL for selected record
+                            [startURI, endURI] = baseURI.split("#");
+                            window.open(
+                                startURI + "#id=" + record.res_id + "&" +
+                                endURI.substring(0, endURI.length - 4) + "form",
+                                "_blank"
+                            );
+                        }
+                        break;
+                    case 2:
+                        if (baseURI.substring(baseURI.length - 4) === "list") {
+                            // Construct form URL for selected record
+                            [startURI, endURI] = baseURI.split("#");
+                            window.open(
+                                startURI + "#id=" + record.res_id + "&" +
+                                endURI.substring(0, endURI.length - 4) + "form",
+                                "_blank"
+                            );
+                        }
+                        break;
+                }
+                return true;
+            })
+        }
         return $tr;
     },
     /**
