@@ -996,7 +996,7 @@ var ListRenderer = BasicRenderer.extend({
 
                 switch(ev.originalEvent.which) {
                     case 1:
-                        if (ev.ctrlKey && baseURI.substring(baseURI.length - 4) === "list") {
+                        if (ev.ctrlKey || ev.metaKey && baseURI.substring(baseURI.length - 4) === "list") {
                             // Prevent record from being opened in current tab
                             ev.preventDefault();
                             // Construct form URL for selected record
