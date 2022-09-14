@@ -7,7 +7,7 @@ import { localization } from "@web/core/l10n/localization";
 
 export const DEFAULT_PERIOD = "this_month";
 
-export const OVERRIDE_FILTERS = ["year_to_date", "month_to_date", "today", "yesterday", "last_month", "last_year"]
+export const OVERRIDE_FILTERS = ["year_to_date", "month_to_date", "today", "yesterday", "mw_last_month", "mw_last_year"]
 
 export const QUARTERS = {
     1: { description: _lt("Q1"), coveredMonths: [1, 2, 3] },
@@ -24,8 +24,8 @@ export const MONTH_OPTIONS = {
         plusParam: {},
         granularity: "month",
     },
-    previous_month: {
-        id: "previous_month",
+    last_month: {
+        id: "last_month",
         groupNumber: 1,
         format: "MMMM",
         plusParam: { months: -1 },
@@ -79,8 +79,8 @@ export const YEAR_OPTIONS = {
         plusParam: {},
         granularity: "year",
     },
-    previous_year: {
-        id: "previous_year",
+    last_year: {
+        id: "last_year",
         groupNumber: 2,
         format: "yyyy",
         plusParam: { years: -1 },
@@ -104,7 +104,7 @@ export const OVERRIDE_OPTIONS = {
         id: 'year_to_date', groupNumber: 3, description: _lt('Year to Date'),
         plusParam: {}, granularity: 'year,day',
     },
-        today: {
+    today: {
         id: 'today', groupNumber: 3, description: _lt('Today'),
         plusParam: {}, granularity: "day",
     },
@@ -112,12 +112,12 @@ export const OVERRIDE_OPTIONS = {
         id: 'yesterday', groupNumber: 3, description: _lt('Yesterday'),
         plusParam: { days: -1 }, granularity: 'day',
     },
-    last_year: {
-        id: 'last_year', groupNumber: 3, description: _lt('Last Year'),
+    mw_last_year: {
+        id: 'mw_last_year', groupNumber: 3, description: _lt('Last Year'),
         plusParam: { years: -1 }, granularity: "year",
     },
-    last_month: {
-        id: 'last_month', groupNumber: 3, description: _lt('Last Month'),
+    mw_last_month: {
+        id: 'mw_last_month', groupNumber: 3, description: _lt('Last Month'),
         plusParam: { months: -1 }, granularity: "month",
     },
 };
@@ -511,5 +511,5 @@ export function sortPeriodOptions(options) {
  * Checks if a year id is among the given array of period option ids.
  */
 export function yearSelected(selectedOptionIds) {
-    return selectedOptionIds.some((optionId) => Object.keys(YEAR_OPTIONS).includes(optionId) || optionId === "last_year");
+    return selectedOptionIds.some((optionId) => Object.keys(YEAR_OPTIONS).includes(optionId) || optionId === "mw_last_year");
 }

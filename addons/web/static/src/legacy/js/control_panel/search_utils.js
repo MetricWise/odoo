@@ -89,7 +89,7 @@ odoo.define('web.searchUtils', function (require) {
         selection: 'selection',
     };
     const DEFAULT_PERIOD = 'this_month';
-    const OVERRIDE_FILTERS = ["year_to_date", "month_to_date", "today", "yesterday", "last_month", "last_year"];
+    const OVERRIDE_FILTERS = ["year_to_date", "month_to_date", "today", "yesterday", "mw_last_month", "mw_last_year"];
     const QUARTERS = {
         1: { description: _lt("Q1"), coveredMonths: [0, 1, 2] },
         2: { description: _lt("Q2"), coveredMonths: [3, 4, 5] },
@@ -101,8 +101,8 @@ odoo.define('web.searchUtils', function (require) {
             id: 'this_month', groupNumber: 1, format: 'MMMM',
             addParam: {}, granularity: 'month',
         },
-        previous_month: {
-            id: 'previous_month', groupNumber: 1, format: 'MMMM',
+        last_month: {
+            id: 'last_month', groupNumber: 1, format: 'MMMM',
             addParam: { months: -1 }, granularity: 'month',
         },
         antepenultimate_month: {
@@ -133,8 +133,8 @@ odoo.define('web.searchUtils', function (require) {
             id: 'this_year', groupNumber: 2, format: 'YYYY',
             addParam: {}, granularity: 'year',
         },
-        previous_year: {
-            id: 'previous_year', groupNumber: 2, format: 'YYYY',
+        last_year: {
+            id: 'last_year', groupNumber: 2, format: 'YYYY',
             addParam: { years: -1 }, granularity: 'year',
         },
         antepenultimate_year: {
@@ -171,12 +171,12 @@ odoo.define('web.searchUtils', function (require) {
             id: 'yesterday', groupNumber: 3, description: _lt('Yesterday'),
             addParam: { days: -1 }, granularity: 'day',
         },
-        last_year: {
-            id: 'last_year', groupNumber: 3, description: _lt('Last Year'),
+        mw_last_year: {
+            id: 'mw_last_year', groupNumber: 3, description: _lt('Last Year'),
             addParam: { years: -1 }, granularity: 'year',
         },
-        last_month: {
-            id: 'last_month', groupNumber: 3, description: _lt('Last Month'),
+        mw_last_month: {
+            id: 'mw_last_month', groupNumber: 3, description: _lt('Last Month'),
             format:'MMMM', addParam: { months: -1 }, granularity: 'month',
         },
     };
@@ -596,7 +596,7 @@ odoo.define('web.searchUtils', function (require) {
      * @returns {boolean}
      */
     function yearSelected(selectedOptionIds) {
-        return selectedOptionIds.some(optionId => !!YEAR_OPTIONS[optionId] || optionId === "last_year");
+        return selectedOptionIds.some(optionId => !!YEAR_OPTIONS[optionId] || optionId === "mw_last_year");
     }
 
     return {
