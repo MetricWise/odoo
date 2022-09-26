@@ -66,7 +66,6 @@ odoo.define('web.ActionMixin', function (require) {
         _title: '',
 
         /**
-         * BLUE STINGRAY / METRIC WISE CUSTOM
          * String containing the view description of the client action
          *
          * @see _setViewDescription
@@ -163,7 +162,6 @@ odoo.define('web.ActionMixin', function (require) {
         },
 
         /**
-         * BLUE STINGRAY / METRIC WISE CUSTOM
          * Returns a view_description that may be displayed in center of the
          * control panel area.
          *

@@ -282,7 +282,6 @@ def generate_views(action):
     # providing at least one view mode is a requirement, not an option
     view_modes = action['view_mode'].split(',')
 
-    # BLUE STINGRAY / METRIC WISE CUSTOM
     # make sure the view_description is instantiated
     view_description = action['view_description'] or False
 

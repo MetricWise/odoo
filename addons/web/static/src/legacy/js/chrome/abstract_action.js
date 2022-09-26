@@ -51,17 +51,6 @@ const AbstractAction = Widget.extend(ActionMixin, {
     withSearchBar: false,
 
     /**
-     * BLUE STINGRAY / METRIC WISE CUSTOM
-     * A client action might want to see the view description displayed in its
-     * control panel, or it choose not to use it.
-     *
-     * It also only makes sense if hasControlPanel is set to true.
-     *
-     * @type boolean
-     */
-    withViewDescription: false,
-
-    /**
      * This parameter can be set to customize the available sub menus in the
      * controlpanel (Filters/Group By/Favorites).  This is basically a list of
      * the sub menus that we want to use.
@@ -98,7 +87,6 @@ const AbstractAction = Widget.extend(ActionMixin, {
             this.extensions.ControlPanel = {
                 actionId: action.id,
                 withSearchBar: this.withSearchBar,
-                withViewDescription: this.withViewDescription,
             };
 
             this.viewId = action.search_view_id && action.search_view_id[0];
@@ -108,7 +96,6 @@ const AbstractAction = Widget.extend(ActionMixin, {
                 breadcrumbs: options && options.breadcrumbs,
                 withSearchBar: this.withSearchBar,
                 searchMenuTypes: this.searchMenuTypes,
-                withViewDescription: this.withViewDescription,
             };
         }
     },

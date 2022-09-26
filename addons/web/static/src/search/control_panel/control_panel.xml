@@ -11,10 +11,8 @@
                 </div>
                 <div t-if="display['top-center']" class="o_cp_top_center">
                     <t t-slot="control-panel-top-center">
-                        <t t-set="view_description" t-value="window.sessionStorage.current_action.split(':')[9].slice(1, window.sessionStorage.current_action.split(':')[9].search(','))"/>
-                        <t t-if="view_description">
-                            <p t-esc="view_description.slice(0,-1)" style="font-size: 18px;"/>
-                        </t>
+                        <t t-set="current_action" t-value="window.JSON.parse(window.sessionStorage.current_action)"/>
+                        <p t-if="current_action.view_description" t-raw="current_action.view_description"/>
                     </t>
                 </div>
                 <div t-if="display['top-right']" class="o_cp_top_right">
@@ -72,4 +70,5 @@
             </li>
         </ol>
     </t>
+
 </templates>

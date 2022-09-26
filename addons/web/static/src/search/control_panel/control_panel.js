@@ -39,8 +39,8 @@ export class ControlPanel extends Component {
         const originalSlots = {};
         const transferredSlotNames = [
             "control-panel-top-left",
-            "control-panel-top-right",
             "control-panel-top-center",
+            "control-panel-top-right",
             "control-panel-bottom-left",
             "control-panel-bottom-right",
         ];
@@ -67,15 +67,14 @@ export class ControlPanel extends Component {
         const display = Object.assign(
             {
                 "top-left": true,
-                "top-center":true,
+                "top-center": true,
                 "top-right": true,
                 "bottom-left": true,
                 "bottom-right": true,
             },
             this.props.display || this.env.searchModel.display.controlPanel
         );
-        display.top = display["top-left"] || display["top-center"] ||
-        display["top-right"];
+        display.top = display["top-left"] || display["top-center"] || display["top-right"];
         display.bottom = display["bottom-left"] || display["bottom-right"];
         return display;
     }
