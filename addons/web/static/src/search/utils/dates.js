@@ -112,6 +112,10 @@ export const OVERRIDE_OPTIONS = {
         id: 'yesterday', groupNumber: 3, description: _lt('Yesterday'),
         plusParam: { days: -1 }, granularity: 'day',
     },
+    tomorrow: {
+        id: 'tomorrow', groupNumber: 3, description: _lt('Tomorrow'),
+        plusParam: { days: 1 }, granularity: 'day',
+    },
     mw_last_year: {
         id: 'mw_last_year', groupNumber: 3, description: _lt('Last Year'),
         plusParam: { years: -1 }, granularity: "year",

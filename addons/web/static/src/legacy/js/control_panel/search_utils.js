@@ -142,16 +142,6 @@ odoo.define('web.searchUtils', function (require) {
             addParam: { years: -2 }, granularity: 'year',
         },
     };
-    const DAY_OPTIONS = {
-        today: {
-            id: 'today', groupNumber: 3, description: _lt('Today'),
-            addParam: {}, granularity: "day",
-        },
-        yesterday: {
-            id: 'yesterday', groupNumber: 3, description: _lt('Yesterday'),
-            addParam: { days: -1 }, granularity: 'day',
-        },
-    };
     // These options will override any currently selected date filters and will
     // be removed when a different date filter is selected.
     const OVERRIDE_OPTIONS = {
@@ -170,6 +160,10 @@ odoo.define('web.searchUtils', function (require) {
         yesterday: {
             id: 'yesterday', groupNumber: 3, description: _lt('Yesterday'),
             addParam: { days: -1 }, granularity: 'day',
+        },
+        tomorrow: {
+            id: 'tomorrow', groupNumber: 3, description: _lt('Tomorrow'),
+            addParam: { days: 1 }, granularity: 'day',
         },
         mw_last_year: {
             id: 'mw_last_year', groupNumber: 3, description: _lt('Last Year'),
