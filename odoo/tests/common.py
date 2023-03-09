@@ -107,6 +107,19 @@ def standalone(*tags):
 DB = get_db_name()
 
 
+def new_test_pass(env, login=''):
+    """ Helper function to create a test password for a given login.
+    Must return the same password each time it is called for the same login;
+    not cryptographically secure; for testing only."""
+
+    # Handle users hardcoded into demo data
+    if login in ('admin', 'demo', 'portal'):
+        return login
+
+    Users = env['res.users']
+    return Users._new_test_pass(login)
+
+
 def new_test_user(env, login='', groups='base.group_user', context=None, **kwargs):
     """ Helper function to create a new test user. It allows to quickly create
     users given its login and groups (being a comma separated list of xml ids).
@@ -140,7 +153,7 @@ def new_test_user(env, login='', groups='base.group_user', context=None, **kwarg
         create_values['name'] = '%s (%s)' % (login, groups)
     # automatically give a password equal to login
     if not create_values.get('password'):
-        create_values['password'] = login + 'x' * (8 - len(login))
+        create_values['password'] = new_test_pass(env, login)
     # generate email if not given as most test require an email
     if 'email' not in create_values:
         if single_email_re.match(login):
@@ -1626,7 +1639,7 @@ class HttpCase(TransactionCase):
         self.session.logout(keep_db=True)
         odoo.http.root.session_store.save(self.session)
 
-    def authenticate(self, user, password):
+    def authenticate(self, user, password=None):
         db = get_db_name()
         if getattr(self, 'session', None):
             odoo.http.root.session_store.delete(self.session)
@@ -1640,6 +1653,8 @@ class HttpCase(TransactionCase):
             # than this transaction.
             self.cr.flush()
             self.cr.clear()
+            if not password:
+                password = new_test_pass(self.env, user)
             uid = self.registry['res.users'].authenticate(db, user, password, {'interactive': False})
             env = api.Environment(self.cr, uid, {})
             session.uid = uid
@@ -1691,7 +1706,7 @@ class HttpCase(TransactionCase):
         self.start_browser()
 
         try:
-            self.authenticate(login, login)
+            self.authenticate(login)
             # Flush and clear the current transaction.  This is useful in case
             # we make requests to the server, as these requests are made with
             # test cursors, which uses different caches than this transaction.

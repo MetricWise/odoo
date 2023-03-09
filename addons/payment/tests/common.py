@@ -6,6 +6,7 @@ from odoo.addons.account.models.account_payment_method import AccountPaymentMeth
 from odoo.fields import Command
 
 from odoo.addons.payment.tests.utils import PaymentTestUtils
+from odoo.tests import new_test_pass
 
 _logger = logging.getLogger(__name__)
 
@@ -38,13 +39,13 @@ class PaymentCommon(PaymentTestUtils):
         cls.internal_user = cls.env['res.users'].create({
             'name': 'Internal User (Test)',
             'login': 'internal',
-            'password': 'internal',
+            'password': new_test_pass(cls.env, 'internal'),
             'groups_id': [Command.link(cls.group_user.id)]
         })
         cls.portal_user = cls.env['res.users'].create({
             'name': 'Portal User (Test)',
             'login': 'payment_portal',
-            'password': 'payment_portal',
+            'password': new_test_pass(cls.env, 'payment_portal'),
             'groups_id': [Command.link(cls.group_portal.id)]
         })
         cls.public_user = cls.env.ref('base.public_user')
