@@ -107,6 +107,15 @@ def standalone(*tags):
 DB = get_db_name()
 
 
+def new_test_pass(env, login=''):
+    """ Helper function to create a test password for a given test user.
+    Must return the same password each time it is called for the same user;
+    not cryptographically secure; for testing only."""
+    minlength = int(env['ir.config_parameter'].sudo().get_param('auth_password_policy.minlength', default=8))
+    password = login + 'x' * (minlength - len(login))
+    return password
+
+
 def new_test_user(env, login='', groups='base.group_user', context=None, **kwargs):
     """ Helper function to create a new test user. It allows to quickly create
     users given its login and groups (being a comma separated list of xml ids).
@@ -140,7 +149,7 @@ def new_test_user(env, login='', groups='base.group_user', context=None, **kwarg
         create_values['name'] = '%s (%s)' % (login, groups)
     # automatically give a password equal to login
     if not create_values.get('password'):
-        create_values['password'] = login + 'x' * (8 - len(login))
+        create_values['password'] = new_test_pass(env, login)
     # generate email if not given as most test require an email
     if 'email' not in create_values:
         if single_email_re.match(login):
