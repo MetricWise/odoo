@@ -95,53 +95,77 @@ odoo.define('web.searchUtils', function (require) {
         3: { description: _lt("Q3"), coveredMonths: [6, 7, 8] },
         4: { description: _lt("Q4"), coveredMonths: [9, 10, 11] },
     };
+    const DAY_OPTIONS = {
+        today: {
+            id: "today",
+            groupNumber: 0,
+            description: _lt("Today"),
+            addParam: {},
+            granularity: "day",
+            override: true,
+        },
+        yesterday: {
+            id: "yesterday",
+            groupNumber: 0,
+            description: _lt("Yesterday"),
+            addParam: { days: -1 },
+            granularity: "day",
+            override: true,
+        },
+        tomorrow: {
+            id: "tomorrow",
+            groupNumber: 0,
+            description: _lt("Tomorrow"),
+            addParam: { days: 1 },
+            granularity: "day",
+            override: true,
+        },
+    };
     const MONTH_OPTIONS = {
         this_month: {
             id: 'this_month', groupNumber: 1, format: 'MMMM',
             addParam: {}, granularity: 'month',
+            override: true,
+        },
+        this_month_to_date: {
+            id: "this_month_to_date",
+            groupNumber: 1,
+            format: "MMMM [MTD]",
+            addParam: {},
+            granularity: "month",
+            toCurrent: true,
+            override: true,
         },
         last_month: {
             id: 'last_month', groupNumber: 1, format: 'MMMM',
             addParam: { months: -1 }, granularity: 'month',
-        },
-        antepenultimate_month: {
-            id: 'antepenultimate_month', groupNumber: 1, format: 'MMMM',
-            addParam: { months: -2 }, granularity: 'month',
+            override: true,
         },
     };
     const QUARTER_OPTIONS = {
-        fourth_quarter: {
-            id: 'fourth_quarter', groupNumber: 1, description: QUARTERS[4].description,
-            setParam: { quarter: 4 }, granularity: 'quarter',
-        },
-        third_quarter: {
-            id: 'third_quarter', groupNumber: 1, description: QUARTERS[3].description,
-            setParam: { quarter: 3 }, granularity: 'quarter',
-        },
-        second_quarter: {
-            id: 'second_quarter', groupNumber: 1, description: QUARTERS[2].description,
-            setParam: { quarter: 2 }, granularity: 'quarter',
-        },
-        first_quarter: {
-            id: 'first_quarter', groupNumber: 1, description: QUARTERS[1].description,
-            setParam: { quarter: 1 }, granularity: 'quarter',
-        },
     };
     const YEAR_OPTIONS = {
         this_year: {
-            id: 'this_year', groupNumber: 2, format: 'YYYY',
+            id: 'this_year', groupNumber: 3, format: 'YYYY',
             addParam: {}, granularity: 'year',
+            override: true,
+        },
+        this_year_to_date: {
+            id: "this_year_to_date",
+            groupNumber: 3,
+            format: "YYYY [YTD]",
+            addParam: {},
+            granularity: "year",
+            toCurrent: true,
+            override: true,
         },
         last_year: {
-            id: 'last_year', groupNumber: 2, format: 'YYYY',
+            id: 'last_year', groupNumber: 3, format: 'YYYY',
             addParam: { years: -1 }, granularity: 'year',
-        },
-        antepenultimate_year: {
-            id: 'antepenultimate_year', groupNumber: 2, format: 'YYYY',
-            addParam: { years: -2 }, granularity: 'year',
+            override: true,
         },
     };
-    const PERIOD_OPTIONS = Object.assign({}, MONTH_OPTIONS, QUARTER_OPTIONS, YEAR_OPTIONS);
+    const PERIOD_OPTIONS = Object.assign({}, DAY_OPTIONS, MONTH_OPTIONS, QUARTER_OPTIONS, YEAR_OPTIONS);
 
     // GroupBy menu parameters
     const GROUPABLE_TYPES = [
@@ -226,7 +250,8 @@ odoo.define('web.searchUtils', function (require) {
         const yearOptions = selectedOptions.year;
         const otherOptions = [
             ...(selectedOptions.quarter || []),
-            ...(selectedOptions.month || [])
+            ...(selectedOptions.month || []),
+            ...(selectedOptions.day || []),
         ];
 
         sortPeriodOptions(yearOptions);
@@ -246,17 +271,17 @@ odoo.define('web.searchUtils', function (require) {
                         yearOption.setParam,
                         option ? option.setParam : {}
                     );
-                    const { granularity } = option;
+                    const { granularity, toCurrent } = option;
                     const range = constructDateRange(Object.assign(
-                        { granularity, setParam },
+                        { granularity, setParam, toCurrent },
                         constructRangeParams
                     ));
                     ranges.push(range);
                 }
             } else {
-                const { granularity, setParam } = yearOption;
+                const { granularity, setParam, toCurrent } = yearOption;
                 const range = constructDateRange(Object.assign(
-                    { granularity, setParam },
+                    { granularity, setParam, toCurrent },
                     constructRangeParams
                 ));
                 ranges.push(range);
@@ -291,12 +316,13 @@ odoo.define('web.searchUtils', function (require) {
         granularity,
         setParam,
         addParam,
+        toCurrent,
     }) {
         const date = referenceMoment.clone().set(setParam).add(addParam || {});
 
         // compute domain
         let leftBound = date.clone().locale('en').startOf(granularity);
-        let rightBound = date.clone().locale('en').endOf(granularity);
+        let rightBound = date.clone().locale('en').endOf(toCurrent ? "day" : granularity);
         if (fieldType === 'date') {
             leftBound = leftBound.format('YYYY-MM-DD');
             rightBound = rightBound.format('YYYY-MM-DD');
@@ -317,6 +343,8 @@ odoo.define('web.searchUtils', function (require) {
             descriptions[method](date.format("MMMM"));
         } else if (granularity === "quarter") {
             descriptions[method](QUARTERS[date.quarter()].description);
+        } else if (granularity === "day") {
+            descriptions[method](date.format("MMMM D,"));
         }
         const description = descriptions.join(" ");
 
@@ -469,10 +497,11 @@ odoo.define('web.searchUtils', function (require) {
             const option = PERIOD_OPTIONS[optionId];
             const setParam = getSetParam(option, referenceMoment);
             const granularity = option.granularity;
+            const toCurrent = option.toCurrent;
             if (!selectedOptions[granularity]) {
                 selectedOptions[granularity] = [];
             }
-            selectedOptions[granularity].push({ granularity, setParam });
+            selectedOptions[granularity].push({ granularity, setParam, toCurrent });
         }
         return selectedOptions;
     }
@@ -519,6 +548,14 @@ odoo.define('web.searchUtils', function (require) {
     }
 
     /**
+     * @param {string} optionId
+     * @returns boolean
+     */
+    function isOverride(optionId) {
+        return PERIOD_OPTIONS[optionId].override;
+    }
+
+    /**
      * Checks if a year id is among the given array of period option ids.
      * @param {string[]} selectedOptionIds
      * @returns {boolean}
@@ -544,6 +581,7 @@ odoo.define('web.searchUtils', function (require) {
         getIntervalOptions,
         getPeriodOptions,
         rankInterval,
+        isOverride,
         yearSelected,
     };
 });

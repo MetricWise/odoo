@@ -14,6 +14,33 @@ export const QUARTERS = {
     4: { description: _lt("Q4"), coveredMonths: [10, 11, 12] },
 };
 
+export const DAY_OPTIONS = {
+    today: {
+        id: "today",
+        groupNumber: 0,
+        description: _lt("Today"),
+        plusParam: {},
+        granularity: "day",
+        override: true,
+    },
+    yesterday: {
+        id: "yesterday",
+        groupNumber: 0,
+        description: _lt("Yesterday"),
+        plusParam: { days: -1 },
+        granularity: "day",
+        override: true,
+    },
+    tomorrow: {
+        id: "tomorrow",
+        groupNumber: 0,
+        description: _lt("Tomorrow"),
+        plusParam: { days: 1 },
+        granularity: "day",
+        override: true,
+    },
+};
+
 export const MONTH_OPTIONS = {
     this_month: {
         id: "this_month",
@@ -21,6 +48,16 @@ export const MONTH_OPTIONS = {
         format: "MMMM",
         plusParam: {},
         granularity: "month",
+        override: true,
+    },
+    this_month_to_date: {
+        id: "this_month_to_date",
+        groupNumber: 1,
+        format: "MMMM 'MTD'",
+        plusParam: {},
+        granularity: "month",
+        toCurrent: true,
+        override: true,
     },
     last_month: {
         id: "last_month",
@@ -28,72 +65,42 @@ export const MONTH_OPTIONS = {
         format: "MMMM",
         plusParam: { months: -1 },
         granularity: "month",
-    },
-    antepenultimate_month: {
-        id: "antepenultimate_month",
-        groupNumber: 1,
-        format: "MMMM",
-        plusParam: { months: -2 },
-        granularity: "month",
+        override: true,
     },
 };
 
 export const QUARTER_OPTIONS = {
-    fourth_quarter: {
-        id: "fourth_quarter",
-        groupNumber: 1,
-        description: QUARTERS[4].description,
-        setParam: { quarter: 4 },
-        granularity: "quarter",
-    },
-    third_quarter: {
-        id: "third_quarter",
-        groupNumber: 1,
-        description: QUARTERS[3].description,
-        setParam: { quarter: 3 },
-        granularity: "quarter",
-    },
-    second_quarter: {
-        id: "second_quarter",
-        groupNumber: 1,
-        description: QUARTERS[2].description,
-        setParam: { quarter: 2 },
-        granularity: "quarter",
-    },
-    first_quarter: {
-        id: "first_quarter",
-        groupNumber: 1,
-        description: QUARTERS[1].description,
-        setParam: { quarter: 1 },
-        granularity: "quarter",
-    },
 };
 
 export const YEAR_OPTIONS = {
     this_year: {
         id: "this_year",
-        groupNumber: 2,
+        groupNumber: 3,
         format: "yyyy",
         plusParam: {},
         granularity: "year",
+        override: true,
+    },
+    this_year_to_date: {
+        id: "this_year_to_date",
+        groupNumber: 3,
+        format: "yyyy 'YTD'",
+        plusParam: {},
+        granularity: "year",
+        toCurrent: true,
+        override: true,
     },
     last_year: {
         id: "last_year",
-        groupNumber: 2,
+        groupNumber: 3,
         format: "yyyy",
         plusParam: { years: -1 },
         granularity: "year",
-    },
-    antepenultimate_year: {
-        id: "antepenultimate_year",
-        groupNumber: 2,
-        format: "yyyy",
-        plusParam: { years: -2 },
-        granularity: "year",
+        override: true,
     },
 };
 
-export const PERIOD_OPTIONS = Object.assign({}, MONTH_OPTIONS, QUARTER_OPTIONS, YEAR_OPTIONS);
+export const PERIOD_OPTIONS = Object.assign({}, DAY_OPTIONS, MONTH_OPTIONS, QUARTER_OPTIONS, YEAR_OPTIONS);
 
 export const DEFAULT_INTERVAL = "month";
 
@@ -156,7 +163,11 @@ export function constructDateDomain(
         selectedOptions = getSelectedOptions(referenceMoment, selectedOptionIds);
     }
     const yearOptions = selectedOptions.year;
-    const otherOptions = [...(selectedOptions.quarter || []), ...(selectedOptions.month || [])];
+    const otherOptions = [
+    ...(selectedOptions.quarter || []),
+    ...(selectedOptions.month || []),
+    ...(selectedOptions.day || []),
+    ];
     sortPeriodOptions(yearOptions);
     sortPeriodOptions(otherOptions);
     const ranges = [];
@@ -174,16 +185,16 @@ export function constructDateDomain(
                     yearOption.setParam,
                     option ? option.setParam : {}
                 );
-                const { granularity } = option;
+                const { granularity, toCurrent } = option;
                 const range = constructDateRange(
-                    Object.assign({ granularity, setParam }, constructRangeParams)
+                    Object.assign({ granularity, setParam, toCurrent }, constructRangeParams)
                 );
                 ranges.push(range);
             }
         } else {
-            const { granularity, setParam } = yearOption;
+            const { granularity, setParam, toCurrent } = yearOption;
             const range = constructDateRange(
-                Object.assign({ granularity, setParam }, constructRangeParams)
+                Object.assign({ granularity, setParam, toCurrent }, constructRangeParams)
             );
             ranges.push(range);
         }
@@ -204,7 +215,7 @@ export function constructDateDomain(
  * plusParam, granularity and the reference moment.
  */
 export function constructDateRange(params) {
-    const { referenceMoment, fieldName, fieldType, granularity, setParam, plusParam } = params;
+    const { referenceMoment, fieldName, fieldType, granularity, setParam, plusParam, toCurrent } = params;
     if ("quarter" in setParam) {
         // Luxon does not consider quarter key in setParam (like moment did)
         setParam.month = QUARTERS[setParam.quarter].coveredMonths[0];
@@ -213,7 +224,7 @@ export function constructDateRange(params) {
     const date = referenceMoment.set(setParam).plus(plusParam || {});
     // compute domain
     const leftDate = date.startOf(granularity);
-    const rightDate = date.endOf(granularity);
+    const rightDate = date.endOf(toCurrent ? "day" : granularity);
     let leftBound;
     let rightBound;
     if (fieldType === "date") {
@@ -232,6 +243,8 @@ export function constructDateRange(params) {
     } else if (granularity === "quarter") {
         const quarter = date.quarter;
         descriptions[method](QUARTERS[quarter].description.toString());
+    } else if (granularity === "day") {
+        descriptions[method](date.toFormat("MMMM d,"));
     }
     const description = descriptions.join(" ");
     return { domain, description };
@@ -337,6 +350,10 @@ export function getPeriodOptions(referenceMoment) {
                 description = date.toFormat(option.format);
                 defaultYear = date.year;
                 break;
+            case "day":
+                description = option.description.toString();
+                defaultYear = referenceMoment.set(option.setParam).year;
+                break;
         }
         const setParam = getSetParam(option, referenceMoment);
         options.push({ id, groupNumber, description, defaultYear, setParam });
@@ -378,10 +395,11 @@ export function getSelectedOptions(referenceMoment, selectedOptionIds) {
         const option = PERIOD_OPTIONS[optionId];
         const setParam = getSetParam(option, referenceMoment);
         const granularity = option.granularity;
+        const toCurrent = option.toCurrent;
         if (!selectedOptions[granularity]) {
             selectedOptions[granularity] = [];
         }
-        selectedOptions[granularity].push({ granularity, setParam });
+        selectedOptions[granularity].push({ granularity, setParam, toCurrent });
     }
     return selectedOptions;
 }
@@ -420,6 +438,14 @@ export function sortPeriodOptions(options) {
         }
         return granularity1 < granularity2 ? -1 : 1;
     });
+}
+
+/**
+ * @param {string} optionId
+ * @returns boolean
+ */
+export function isOverride(optionId) {
+    return PERIOD_OPTIONS[optionId].override;
 }
 
 /**

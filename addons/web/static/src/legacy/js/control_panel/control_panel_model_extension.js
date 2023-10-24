@@ -7,7 +7,7 @@ odoo.define("web/static/src/js/control_panel/control_panel_model_extension.js", 
 
     const { DEFAULT_INTERVAL, DEFAULT_PERIOD,
         getComparisonOptions, getIntervalOptions, getPeriodOptions,
-        constructDateDomain, rankInterval, yearSelected } = require('web.searchUtils');
+        constructDateDomain, rankInterval, isOverride, yearSelected } = require('web.searchUtils');
 
     const FAVORITE_PRIVATE_GROUP = 1;
     const FAVORITE_SHARED_GROUP = 2;
@@ -533,6 +533,13 @@ odoo.define("web/static/src/js/control_panel/control_panel_model_extension.js", 
                     );
                 }
             } else {
+                // Override filters cannot coexist with other filters.
+                if (isOverride(optionId)) {
+                    this.state.query = this.state.query.filter(q => q.filterId !== filterId);
+                } else {
+                    this.state.query = this.state.query.filter(q => !isOverride(q.optionId));
+                }
+
                 this.state.query.push({ groupId: filter.groupId, filterId, optionId });
                 if (filter.type === 'filter' && !yearSelected(this._getSelectedOptionIds(filterId))) {
                     // Here we add 'this_year' as options if no option of type
