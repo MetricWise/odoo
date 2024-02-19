@@ -4,7 +4,7 @@ import logging
 
 from odoo.fields import Command
 
-from odoo.addons.payment.tests.common import PaymentCommon
+from odoo.addons.payment.tests.common import new_test_pass, PaymentCommon
 
 _logger = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ class PaymentMultiCompanyCommon(PaymentCommon):
         cls.user_company_b = cls.env['res.users'].create({
             'name': f"{cls.company_b.name} User (TEST)",
             'login': 'user_company_b',
-            'password': 'user_company_b',
+            'password': new_test_pass(cls.env, 'user_company_b'),
             'company_id': cls.company_b.id,
             'company_ids': [Command.set(cls.company_b.ids)],
             'groups_id': [Command.link(cls.group_user.id)],
@@ -30,7 +30,7 @@ class PaymentMultiCompanyCommon(PaymentCommon):
         cls.user_multi_company = cls.env['res.users'].create({
             'name': "Multi Company User (TEST)",
             'login': 'user_multi_company',
-            'password': 'user_multi_company',
+            'password': new_test_pass(cls.env, 'user_multi_company'),
             'company_id': cls.company_a.id,
             'company_ids': [Command.set([cls.company_a.id, cls.company_b.id])],
             'groups_id': [Command.link(cls.group_user.id)],

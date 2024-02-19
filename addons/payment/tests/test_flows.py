@@ -101,13 +101,13 @@ class TestFlows(PaymentCommon, PaymentHttpCommon):
         self._test_flow('direct')
 
     def test_11_direct_checkout_portal(self):
-        self.authenticate(self.portal_user.login, self.portal_user.login)
+        self.authenticate(self.portal_user.login)
         self.user = self.portal_user
         self.partner = self.portal_partner
         self._test_flow('direct')
 
     def test_12_direct_checkout_internal(self):
-        self.authenticate(self.internal_user.login, self.internal_user.login)
+        self.authenticate(self.internal_user.login)
         self.user = self.internal_user
         self.partner = self.internal_partner
         self._test_flow('direct')
@@ -120,13 +120,13 @@ class TestFlows(PaymentCommon, PaymentHttpCommon):
         self._test_flow('redirect')
 
     def test_21_redirect_checkout_portal(self):
-        self.authenticate(self.portal_user.login, self.portal_user.login)
+        self.authenticate(self.portal_user.login)
         self.user = self.portal_user
         self.partner = self.portal_partner
         self._test_flow('redirect')
 
     def test_22_redirect_checkout_internal(self):
-        self.authenticate(self.internal_user.login, self.internal_user.login)
+        self.authenticate(self.internal_user.login)
         self.user = self.internal_user
         self.partner = self.internal_partner
         self._test_flow('redirect')
@@ -137,13 +137,13 @@ class TestFlows(PaymentCommon, PaymentHttpCommon):
     # NOTE: not tested as public user because a public user cannot save payment details
 
     def test_31_tokenize_portal(self):
-        self.authenticate(self.portal_user.login, self.portal_user.login)
+        self.authenticate(self.portal_user.login)
         self.partner = self.portal_partner
         self.user = self.portal_user
         self._test_flow('token')
 
     def test_32_tokenize_internal(self):
-        self.authenticate(self.internal_user.login, self.internal_user.login)
+        self.authenticate(self.internal_user.login)
         self.partner = self.internal_partner
         self.user = self.internal_user
         self._test_flow('token')
@@ -202,22 +202,22 @@ class TestFlows(PaymentCommon, PaymentHttpCommon):
         self.assertEqual(processing_values['reference'], expected_reference)
 
     def test_51_validation_direct_portal(self):
-        self.authenticate(self.portal_user.login, self.portal_user.login)
+        self.authenticate(self.portal_user.login)
         self.partner = self.portal_partner
         self._test_validation(flow='direct')
 
     def test_52_validation_direct_internal(self):
-        self.authenticate(self.internal_user.login, self.internal_user.login)
+        self.authenticate(self.internal_user.login)
         self.partner = self.internal_partner
         self._test_validation(flow='direct')
 
     def test_61_validation_redirect_portal(self):
-        self.authenticate(self.portal_user.login, self.portal_user.login)
+        self.authenticate(self.portal_user.login)
         self.partner = self.portal_partner
         self._test_validation(flow='direct')
 
     def test_62_validation_redirect_internal(self):
-        self.authenticate(self.internal_user.login, self.internal_user.login)
+        self.authenticate(self.internal_user.login)
         self.partner = self.internal_partner
         self._test_validation(flow='direct')
 
@@ -233,7 +233,7 @@ class TestFlows(PaymentCommon, PaymentHttpCommon):
         self.assertTrue(response.url.startswith(self._build_url('/web/login?redirect=')))
 
         # Pay without a partner specified (but logged) --> pay with the partner of current user.
-        self.authenticate(self.portal_user.login, self.portal_user.login)
+        self.authenticate(self.portal_user.login)
         tx_context = self.get_tx_checkout_context(**route_values)
         self.assertEqual(tx_context['partner_id'], self.portal_partner.id)
 
@@ -247,7 +247,7 @@ class TestFlows(PaymentCommon, PaymentHttpCommon):
         self.assertTrue(response.url.startswith(self._build_url('/web/login?redirect=')))
 
         # Pay without a partner specified (but logged) --> pay with the partner of current user.
-        self.authenticate(self.portal_user.login, self.portal_user.login)
+        self.authenticate(self.portal_user.login)
         tx_context = self.get_tx_checkout_context(**route_values)
         self.assertEqual(tx_context['partner_id'], self.portal_partner.id)
 
@@ -337,7 +337,7 @@ class TestFlows(PaymentCommon, PaymentHttpCommon):
 
     @mute_logger('odoo.addons.payment.models.payment_transaction')
     def test_direct_payment_triggers_no_payment_request(self):
-        self.authenticate(self.portal_user.login, self.portal_user.login)
+        self.authenticate(self.portal_user.login)
         self.partner = self.portal_partner
         self.user = self.portal_user
         with patch(
@@ -351,7 +351,7 @@ class TestFlows(PaymentCommon, PaymentHttpCommon):
 
     @mute_logger('odoo.addons.payment.models.payment_transaction')
     def test_payment_with_redirect_triggers_no_payment_request(self):
-        self.authenticate(self.portal_user.login, self.portal_user.login)
+        self.authenticate(self.portal_user.login)
         self.partner = self.portal_partner
         self.user = self.portal_user
         with patch(
@@ -365,7 +365,7 @@ class TestFlows(PaymentCommon, PaymentHttpCommon):
 
     @mute_logger('odoo.addons.payment.models.payment_transaction')
     def test_payment_by_token_triggers_exactly_one_payment_request(self):
-        self.authenticate(self.portal_user.login, self.portal_user.login)
+        self.authenticate(self.portal_user.login)
         self.partner = self.portal_partner
         self.user = self.portal_user
         with patch(

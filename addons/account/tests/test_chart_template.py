@@ -299,18 +299,15 @@ class TestChartTemplate(TransactionCase):
         advisor_users = self.env['res.users'].create([{
             'name': 'AccountAdvisorTest1',
             'login': 'aat1',
-            'password': 'aat1aat1',
             'groups_id': [(4, accountant_manager_group.id)],
         }, {
             'name': 'AccountAdvisorTest2',
             'login': 'aat2',
-            'password': 'aat2aat2',
             'groups_id': [(4, accountant_manager_group.id)],
         }])
         normal_user = self.env['res.users'].create([{
             'name': 'AccountUserTest1',
             'login': 'aut1',
-            'password': 'aut1aut1',
             'groups_id': [(4, self.env.ref('account.group_account_user').id)],
         }])
         # create situation where we need to recreate the tax during update to get notification(s) sent

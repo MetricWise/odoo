@@ -360,6 +360,16 @@ class Users(models.Model):
             for uid, pw in cr.fetchall():
                 Users.browse(uid).password = pw
 
+    @api.model
+    def _new_test_pass(self, login=''):
+        """ Helper function to create a test password for a given login.
+        Must return the same password each time it is called for the same login;
+        not cryptographically secure; for testing only."""
+        Params = self.env['ir.config_parameter'].sudo()
+        minlength = int(Params.get_param('auth_password_policy.minlength', default=8))
+        password = login + 'x' * (minlength - len(login))
+        return password
+
     def _set_password(self):
         ctx = self._crypt_context()
         hash_password = ctx.hash if hasattr(ctx, 'hash') else ctx.encrypt

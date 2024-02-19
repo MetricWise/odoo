@@ -16,7 +16,7 @@ class TestMultiCompanyFlows(PaymentMultiCompanyCommon, PaymentHttpCommon):
         route_values = self._prepare_pay_values(partner=self.user_company_b.partner_id)
 
         # Log in as user from Company A
-        self.authenticate(self.user_company_a.login, self.user_company_a.login)
+        self.authenticate(self.user_company_a.login)
 
         # Pay in company B
         route_values['company_id'] = self.company_b.id
@@ -80,7 +80,7 @@ class TestMultiCompanyFlows(PaymentMultiCompanyCommon, PaymentHttpCommon):
         self.portal_user.write({'company_ids': [company_b.id], 'company_id': company_b.id})
 
         # Log in as portal user
-        self.authenticate(self.portal_user.login, self.portal_user.login)
+        self.authenticate(self.portal_user.login)
 
         # Archive token in company A
         url = self._build_url('/payment/archive_token')
