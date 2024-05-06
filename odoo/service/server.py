@@ -1,6 +1,7 @@
 #-----------------------------------------------------------
 # Threaded, Gevent and Prefork Servers
 #-----------------------------------------------------------
+import ctypes
 import datetime
 import errno
 import logging
@@ -8,6 +9,7 @@ import os
 import os.path
 import platform
 import random
+import requests
 import select
 import signal
 import socket
@@ -826,7 +828,10 @@ class PreforkServer(CommonServer):
                               worker.__class__.__name__,
                               pid,
                               worker.watchdog_timeout)
-                self.worker_kill(pid, signal.SIGKILL)
+                if (now - worker.watchdog_time) >= worker.watchdog_timeout + 5:
+                    self.worker_kill(pid, signal.SIGKILL)
+                else:
+                    self.worker_kill(pid, signal.SIGABRT)
 
     def process_spawn(self):
         if config['http_enable']:
@@ -946,6 +951,7 @@ class Worker(object):
         self.ppid = os.getpid()
         self.pid = None
         self.alive = True
+        self.thread = None
         # should we rename into lifetime ?
         self.request_max = multi.limit_request
         self.request_count = 0
@@ -968,6 +974,24 @@ class Worker(object):
         _logger.info('Worker (%d) CPU time limit (%s) reached.', self.pid, config['limit_time_cpu'])
         # We dont suicide in such case
         raise Exception('CPU time limit exceeded.')
+
+    def signal_time_real_handler(self, sig, frame):
+        _logger.info('Worker (%d) real time limit (%s) reached.', self.pid, config['limit_time_real'])
+        thread_id = None
+        if hasattr(self.thread, '_thread_id'):
+            thread_id = self.thread._thread_id
+        for id, thread in threading._active.items():
+            if thread is self.thread:
+                thread_id = id
+        if not thread_id:
+            raise Exception('Failed to determine thread id.')
+
+        res = ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id, ctypes.py_object(SystemExit))
+        if res > 1:
+            ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id, 0)
+        #     print('Exception raise failure')
+
+        # raise Exception('Real time limit exceeded.')
 
     def sleep(self):
         try:
@@ -1017,6 +1041,7 @@ class Worker(object):
             # reset blocking status
             self.multi.socket.setblocking(0)
 
+        signal.signal(signal.SIGABRT, self.signal_time_real_handler)
         signal.signal(signal.SIGINT, self.signal_handler)
         signal.signal(signal.SIGXCPU, self.signal_time_expired_handler)
 
@@ -1034,10 +1059,10 @@ class Worker(object):
     def run(self):
         try:
             self.start()
-            t = threading.Thread(name="Worker %s (%s) workthread" % (self.__class__.__name__, self.pid), target=self._runloop)
-            t.daemon = True
-            t.start()
-            t.join()
+            self.thread = threading.Thread(name="Worker %s (%s) workthread" % (self.__class__.__name__, self.pid), target=self._runloop)
+            self.thread.daemon = True
+            self.thread.start()
+            self.thread.join()
             _logger.info("Worker (%s) exiting. request_count: %s, registry count: %s.",
                          self.pid, self.request_count,
                          len(odoo.modules.registry.Registry.registries))
