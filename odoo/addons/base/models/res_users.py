@@ -31,6 +31,7 @@ from odoo.modules.module import get_module_resource
 from odoo.osv import expression
 from odoo.service.db import check_super
 from odoo.tools import partition, collections, frozendict, lazy_property, image_process
+from odoo.tools.mail import email_escape_char
 
 _logger = logging.getLogger(__name__)
 
@@ -699,7 +700,7 @@ class Users(models.Model):
 
     @api.model
     def _get_email_domain(self, email):
-        return [('email', '=', email)]
+        return [('email', '=ilike', email_escape_char(email))]
 
     @api.model
     def _get_login_order(self):
