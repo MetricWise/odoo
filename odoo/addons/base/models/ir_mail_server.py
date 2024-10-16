@@ -405,8 +405,7 @@ class IrMailServer(models.Model):
             else:
                 message_id = make_msgid()
         msg['Message-Id'] = message_id
-        if references:
-            msg['references'] = references
+        msg['References'] = references or message_id
         msg['Subject'] = subject
         msg['From'] = email_from
         del msg['Reply-To']
