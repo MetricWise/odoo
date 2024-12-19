@@ -13,6 +13,7 @@ import {
     getIntervalOptions,
     getPeriodOptions,
     rankInterval,
+    isOverride,
     yearSelected,
 } from "./utils/dates";
 import { FACET_ICONS } from "./utils/misc";
@@ -879,6 +880,13 @@ export class SearchModel extends EventBus {
                 );
             }
         } else {
+            // Override filters cannot coexist with other filters.
+            if (isOverride(generatorId)) {
+                this.query = this.query.filter(q => q.searchItemId !== searchItemId);
+            } else {
+                this.query = this.query.filter(q => !isOverride(q.generatorId));
+            }
+
             this.query.push({ searchItemId, generatorId });
             if (!yearSelected(this._getSelectedGeneratorIds(searchItemId))) {
                 // Here we add 'this_year' as options if no option of type
