@@ -208,11 +208,13 @@ class Partner(models.Model):
     partner_latitude = fields.Float(string='Geo Latitude', digits=(10, 7))
     partner_longitude = fields.Float(string='Geo Longitude', digits=(10, 7))
     email = fields.Char()
-    email_formatted = fields.Char(
-        'Formatted Email', compute='_compute_email_formatted',
+    email_formatted = fields.Char('Formatted Email', compute='_compute_email_formatted',
         help='Format email address "Name <email@domain>"')
     phone = fields.Char()
     mobile = fields.Char()
+    primary_phone = fields.Selection(
+        string="Primary Phone", selection=[("phone", "Phone"), ("mobile", "Mobile")], required=True)
+    primary_phone_number = fields.Char(string='Primary Phone', compute='_compute_primary_phone_number', readonly=True)
     is_company = fields.Boolean(string='Is a Company', default=False,
         help="Check if the contact is a company, otherwise it is a person")
     industry_id = fields.Many2one('res.partner.industry', 'Industry')
@@ -244,6 +246,20 @@ class Partner(models.Model):
     _sql_constraints = [
         ('check_name', "CHECK( (type='contact' AND name IS NOT NULL) or (type!='contact') )", 'Contacts require a name'),
     ]
+
+    @api.depends('primary_phone', 'phone', 'mobile')
+    def _compute_primary_phone_number(self):
+        for partner_id in self:
+            if partner_id.primary_phone:
+                if partner_id.primary_phone == 'phone':
+                    partner_id.primary_phone_number = "Primary Phone is %s" %partner_id.phone
+                elif partner_id.primary_phone == 'mobile':
+                    partner_id.primary_phone_number = "Primary Phone is %s" %partner_id.mobile
+            else:
+                partner_id.primary_phone_number = ""
+
+            if partner_id.primary_phone_number == "Primary Phone is False":
+                partner_id.primary_phone_number = ""
 
     @api.depends('name', 'user_ids.share', 'image_1920', 'is_company', 'type')
     def _compute_avatar_1920(self):
