@@ -709,13 +709,14 @@ class Lead(models.Model):
                 vals.update({'probability': 100, 'automated_probability': 100})
                 stage_is_won = True
 
-        # stage change with new stage: update probability and date_closed
-        if vals.get('probability', 0) >= 100 or not vals.get('active', True):
-            vals['date_closed'] = fields.Datetime.now()
-        elif vals.get('probability', 0) > 0:
-            vals['date_closed'] = False
-        elif stage_updated and not stage_is_won and not 'probability' in vals:
-            vals['date_closed'] = False
+        if 'date_closed' not in vals or not self.env.su:
+            # stage change with new stage: update date_closed
+            if vals.get('probability', 0) >= 100 or not vals.get('active', True):
+                vals['date_closed'] = fields.Datetime.now()
+            elif vals.get('probability', 0) > 0:
+                vals['date_closed'] = False
+            elif stage_updated and not stage_is_won and not 'probability' in vals:
+                vals['date_closed'] = False
 
         if any(field in ['active', 'stage_id'] for field in vals):
             self._handle_won_lost(vals)
